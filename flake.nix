@@ -42,7 +42,7 @@
         arduinoEnv = pkgs.mkArduinoEnv {
           libraries = with pkgs.arduinoLibraries; [
             (arduino-nix.latestVersion InkplateLibrary)
-            (arduino-nix.latestVersion ESP32Time)
+            (arduino-nix.latestVersion NTPClient)
           ];
 
           packages = with pkgs.arduinoPackages; [

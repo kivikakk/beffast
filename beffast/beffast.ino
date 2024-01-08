@@ -4,15 +4,20 @@
 
 #include <Inkplate.h>
 #include <WiFi.h>
-#include <ESP32Time.h>
+#include <NTPClient.h>
 
 Inkplate display(INKPLATE_3BIT);
 WiFiServer server(80);
 
 #include "./wificreds.h"
 
-const char connecting[] = "Connecting to WiFi~";
-const char* days_of_week[] = {
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
+const char CONNECTING[] = "Connecting to WiFi~";
+const char CONNECT_FAILED[] = "WiFi connect fail :<";
+const char SYNCING_NTP[] = "Syncing with NTP!";
+const char* DAYS_OF_WEEK[] = {
     "domingo",
     "lunes",
     "martes",
@@ -22,7 +27,7 @@ const char* days_of_week[] = {
     "snabado",
 };
 
-const char* state_texts[] = {
+const char* STATE_TEXTS[] = {
     "Lily has not had BEFFAST yet :'(",
     "Lily has chomped BEFFAST :)",
     "Lily has not had DINDIN yet :'(",
@@ -36,7 +41,7 @@ static enum {
     LILY_CHOMPED_DINDIN,
 } state_of_the_dog;
 
-static ESP32Time rtc;
+static tm timeinfo;
 
 static void displayTextCentered(char const* text)
 {
@@ -59,10 +64,8 @@ static void displayTextRightLn(char const* text)
 static void displayClock()
 {
     display.setCursor(0, 0);
-    static tm timeinfo;
-    timeinfo = rtc.getTimeStruct();
-    timeinfo = rtc.getTimeStruct();
-    displayTextRightLn(days_of_week[timeinfo.tm_wday]);
+    updateTimeinfo();
+    displayTextRightLn(DAYS_OF_WEEK[timeinfo.tm_wday]);
     static char timebuf[10];
     static size_t len;
     len = strftime(timebuf, sizeof(timebuf), "%I:%M %p", &timeinfo);
@@ -78,7 +81,7 @@ static void refresh()
 {
     display.clearDisplay();
     displayClock();
-    displayTextCentered(state_texts[state_of_the_dog]);
+    displayTextCentered(STATE_TEXTS[state_of_the_dog]);
     display.display();
 }
 
@@ -96,7 +99,7 @@ void setup()
     display.setTextWrap(true);
 
     display.clearDisplay();
-    displayTextCentered(connecting);
+    displayTextCentered(CONNECTING);
     display.display();
 
     WiFi.mode(WIFI_STA);
@@ -112,6 +115,7 @@ void setup()
             attempted = true;
         } else if (status == WL_CONNECT_FAILED) {
             display.clearDisplay();
+            displayTextCentered(CONNECT_FAILED);
             display.display();
             while (true) {
                 delay(60000);
@@ -121,25 +125,31 @@ void setup()
     };
 
     server.begin();
+    timeClient.begin();
+
+    display.clearDisplay();
+    displayTextCentered(SYNCING_NTP);
+    display.display();
+
+    timeClient.update();
+    while (!timeClient.isTimeSet()) {
+        timeClient.update();
+    }
+
     refresh();
 }
 
 enum struct RequestKind {
     FEED,
     UNFEED,
-    SET_TIME,
 };
 
 static struct {
     RequestKind kind;
-    union {
-        uint64_t set_time;
-    };
 } request;
 
 #define URI_FEED "/feed"
 #define URI_UNFEED "/unfeed"
-#define URI_SET_TIME "/set_time/"
 
 static bool parseClientRequest(WiFiClient& client)
 {
@@ -196,22 +206,6 @@ static bool parseClientRequest(WiFiClient& client)
                     request.kind = RequestKind::FEED;
                 } else if (strcmp(buf, URI_UNFEED) == 0) {
                     request.kind = RequestKind::UNFEED;
-                } else if (len > (sizeof(URI_SET_TIME) - 1)
-                           && strncmp(buf, URI_SET_TIME, (sizeof(URI_SET_TIME) - 1)) == 0) {
-                    request.kind = RequestKind::SET_TIME;
-                    request.set_time = 0;
-                    len = sizeof(URI_SET_TIME) - 1;
-                    while (buf[len]) {
-                        if (buf[len] >= '0' && buf[len] <= '9') {
-                            request.set_time *= 10;
-                            request.set_time += buf[len++] - '0';
-                        } else {
-                            return false;
-                        }
-                    }
-                    if (!request.set_time) {
-                        return false;
-                    }
                 } else {
                     return false;
                 }
@@ -259,11 +253,17 @@ static bool parseClientRequest(WiFiClient& client)
     return false;
 }
 
+static void updateTimeinfo()
+{
+    time_t now = timeClient.getEpochTime();
+    localtime_r(&now, &timeinfo);
+}
+
 void loop()
 {
-    static tm timeinfo;
-    timeinfo = rtc.getTimeStruct();
+    timeClient.update();
 
+    updateTimeinfo();
     if (timeinfo.tm_hour >= 16 && state_of_the_dog == LILY_CHOMPED_BEFFAST) {
         state_of_the_dog = LILY_HOONGY_DINDIN;
         refresh();
@@ -297,10 +297,6 @@ void loop()
                     state_of_the_dog = LILY_HOONGY_DINDIN;
                     success = true;
                 }
-                break;
-            case RequestKind::SET_TIME:
-                success = true;
-                rtc.setTime(request.set_time);
                 break;
             }
         }
