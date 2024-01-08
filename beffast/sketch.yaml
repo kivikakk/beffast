@@ -1,0 +1,2 @@
+default_fqbn: Inkplate_Boards:esp32:Inkplate6:UploadSpeed=460800
+default_port: /dev/cu.usbserial-210
