@@ -61,15 +61,6 @@ static void displayClock()
     display.setCursor(0, 0);
     static tm timeinfo;
     timeinfo = rtc.getTimeStruct();
-    // yes this is totally adequate daylight saving time handling
-    if (timeinfo.tm_mon < 3 ||
-        (timeinfo.tm_mon == 3 && timeinfo.tm_mday < 7) ||
-        (timeinfo.tm_mon == 9 && timeinfo.tm_mday >= 6) ||
-        timeinfo.tm_mon > 9) {
-        rtc.offset = 3600 * 11;
-    } else {
-        rtc.offset = 3600 * 10;
-    }
     timeinfo = rtc.getTimeStruct();
     displayTextRightLn(days_of_week[timeinfo.tm_wday]);
     static char timebuf[10];
@@ -93,7 +84,8 @@ static void refresh()
 
 void setup()
 {
-    setenv("TZ", "UTC", 1);
+    // Australia/Melbourne
+    setenv("TZ", "AEST-10AEDT,M10.1.0,M4.1.0/3", 1);
     tzset();
 
     state_of_the_dog = LILY_HOONGY_BEFFAST;
