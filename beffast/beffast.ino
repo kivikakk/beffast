@@ -91,8 +91,6 @@ void setup()
     setenv("TZ", "AEST-10AEDT,M10.1.0,M4.1.0/3", 1);
     tzset();
 
-    state_of_the_dog = LILY_HOONGY_BEFFAST;
-
     display.begin();
     display.setTextColor(0, 7);
     display.setTextSize(4);
@@ -135,6 +133,12 @@ void setup()
     while (!timeClient.isTimeSet()) {
         timeClient.update();
     }
+
+    updateTimeinfo();
+    state_of_the_dog =
+        timeinfo.tm_hour < 16
+            ? LILY_HOONGY_BEFFAST
+            : LILY_HOONGY_DINDIN;
 
     refresh();
 }
