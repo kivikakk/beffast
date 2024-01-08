@@ -6,10 +6,10 @@
 #include <WiFi.h>
 #include <NTPClient.h>
 
-Inkplate display(INKPLATE_3BIT);
-WiFiServer server(7903);
+#include "./creds.h"
 
-#include "./wificreds.h"
+Inkplate display(INKPLATE_1BIT);
+WiFiServer server(PORT);
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -92,7 +92,7 @@ void setup()
     tzset();
 
     display.begin();
-    display.setTextColor(0, 7);
+    display.setTextColor(1, 0);
     display.setTextSize(4);
     display.setTextWrap(true);
 
@@ -206,9 +206,15 @@ static bool parseClientRequest(WiFiClient& client)
                 buf[len++] = c;
             } else if (c == ' ') {
                 buf[len] = 0;
-                if (strcmp(buf, URI_FEED) == 0) {
+                if (len < (sizeof(SECRET) - 1) + 1) {
+                    return false;
+                }
+                if (strncmp(buf, "/" SECRET, sizeof(SECRET) - 1 + 1) != 0) {
+                    return false;
+                }
+                if (strcmp(&buf[sizeof(SECRET) - 1 + 1], URI_FEED) == 0) {
                     request.kind = RequestKind::FEED;
-                } else if (strcmp(buf, URI_UNFEED) == 0) {
+                } else if (strcmp(&buf[sizeof(SECRET) - 1 + 1], URI_UNFEED) == 0) {
                     request.kind = RequestKind::UNFEED;
                 } else {
                     return false;

@@ -1,3 +1,5 @@
 const char WIFI_SSID[] = "Telstra Air";
 const char WIFI_PASS[] = "42069";
 const char HOSTNAME[] = "nyonkah";
+const uint16_t PORT = 4761;
+#define SECRET "oooo"
