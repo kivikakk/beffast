@@ -100,6 +100,7 @@ void setup()
     display.display();
 
     WiFi.mode(WIFI_STA);
+    WiFi.setHostname(HOSTNAME);
     bool attempted = false;
 
     while (true) {
@@ -107,7 +108,7 @@ void setup()
         if (status == WL_CONNECTED) {
             break;
         } else if (!attempted) {
-            WiFi.begin(wifi_ssid, wifi_pass);
+            WiFi.begin(WIFI_SSID, WIFI_PASS);
             attempted = true;
         } else if (status == WL_CONNECT_FAILED) {
             display.clearDisplay();
@@ -260,6 +261,18 @@ static bool parseClientRequest(WiFiClient& client)
 
 void loop()
 {
+    static tm timeinfo;
+    timeinfo = rtc.getTimeStruct();
+
+    if (timeinfo.tm_hour >= 16 && state_of_the_dog == LILY_CHOMPED_BEFFAST) {
+        state_of_the_dog = LILY_HOONGY_DINDIN;
+        refresh();
+    }
+    if (timeinfo.tm_hour < 16 && state_of_the_dog == LILY_CHOMPED_DINDIN) {
+        state_of_the_dog = LILY_HOONGY_BEFFAST;
+        refresh();
+    }
+
     static WiFiClient client;
     client = server.available();
     if (client) {
