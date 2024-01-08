@@ -7,7 +7,7 @@
 #include <NTPClient.h>
 
 Inkplate display(INKPLATE_3BIT);
-WiFiServer server(80);
+WiFiServer server(7903);
 
 #include "./wificreds.h"
 
