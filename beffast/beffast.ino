@@ -14,9 +14,9 @@ WiFiServer server(PORT);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
-const char CONNECTING[] = "Connecting to WiFi~";
-const char CONNECT_FAILED[] = "WiFi connect fail :<";
-const char SYNCING_NTP[] = "Syncing with NTP!";
+const char CONNECTING[] = "Connecting WiFi~";
+const char CONNECT_FAILED[] = "WiFi fail :<";
+const char SYNCING_NTP[] = "Syncing NTP!";
 const char* DAYS_OF_WEEK[] = {
     "domingo",
     "lunes",
@@ -27,12 +27,12 @@ const char* DAYS_OF_WEEK[] = {
     "snabado",
 };
 
-const char* STATE_TEXTS[] = {
-    "Lily has not had BEFFAST yet :'(",
-    "Lily has chomped BEFFAST :)",
-    "Lily has not had DINDIN yet :'(",
-    "Lily has chomped DINDIN :)",
-};
+const char LILY_HAS_NOT_HAD[] = "Lily has not had";
+const char LILY_HAS_CHOMPED[] = "Lily has chomped";
+const char BEFFAST_YET_FROWN[] = "BEFFAST yet :'(";
+const char DINDIN_YET_FROWN[] = "DINDIN yet :'(";
+const char BEFFAST_SMILEY[] = "BEFFAST :)";
+const char DINDIN_SMILEY[] = "DINDIN :)";
 
 static enum {
     LILY_HOONGY_BEFFAST,
@@ -43,12 +43,14 @@ static enum {
 
 static tm timeinfo;
 
-static void displayTextCentered(char const* text)
+static void displayTextCentered(char const* text, int line, int lines)
 {
     static int16_t x, y;
     static uint16_t w, h;
     display.getTextBounds(text, 0, 0, &x, &y, &w, &h);
-    display.setCursor((display.width() - w) / 2, (display.height() - h) / 2);
+    display.setCursor(
+        (display.width() - w) / 2,
+        (display.height() - ((h + 2) * lines) - 2) / 2 + (h + 2) * line);
     display.print(text);
 }
 
@@ -63,9 +65,12 @@ static void displayTextRightLn(char const* text)
 
 static void displayClock()
 {
+    display.setTextSize(5);
     display.setCursor(0, 0);
     updateTimeinfo();
-    displayTextRightLn(DAYS_OF_WEEK[timeinfo.tm_wday]);
+    if (timeinfo.tm_wday == 3) {
+        displayTextRightLn(DAYS_OF_WEEK[timeinfo.tm_wday]);
+    }
     static char timebuf[10];
     static size_t len;
     len = strftime(timebuf, sizeof(timebuf), "%I:%M %p", &timeinfo);
@@ -75,13 +80,34 @@ static void displayClock()
     timebuf[len - 2] = tolower(timebuf[len - 2]);
     timebuf[len - 1] = tolower(timebuf[len - 1]);
     displayTextRightLn(timebuf);
+    if (timeinfo.tm_wday != 3) {
+        displayTextRightLn(DAYS_OF_WEEK[timeinfo.tm_wday]);
+    }
 }
 
 static void refresh()
 {
     display.clearDisplay();
     displayClock();
-    displayTextCentered(STATE_TEXTS[state_of_the_dog]);
+    display.setTextSize(7);
+    switch (state_of_the_dog) {
+    case LILY_HOONGY_BEFFAST:
+        displayTextCentered(LILY_HAS_NOT_HAD, 0, 2);
+        displayTextCentered(BEFFAST_YET_FROWN, 1, 2);
+        break;
+    case LILY_CHOMPED_BEFFAST:
+        displayTextCentered(LILY_HAS_CHOMPED, 0, 2);
+        displayTextCentered(BEFFAST_SMILEY, 1, 2);
+        break;
+    case LILY_HOONGY_DINDIN:
+        displayTextCentered(LILY_HAS_NOT_HAD, 0, 2);
+        displayTextCentered(DINDIN_YET_FROWN, 1, 2);
+        break;
+    case LILY_CHOMPED_DINDIN:
+        displayTextCentered(LILY_HAS_CHOMPED, 0, 2);
+        displayTextCentered(DINDIN_SMILEY, 1, 2);
+        break;
+    }
     display.display();
 }
 
@@ -93,11 +119,11 @@ void setup()
 
     display.begin();
     display.setTextColor(1, 0);
-    display.setTextSize(4);
-    display.setTextWrap(true);
+    display.setTextWrap(false);
+    display.setTextSize(7);
 
     display.clearDisplay();
-    displayTextCentered(CONNECTING);
+    displayTextCentered(CONNECTING, 0, 1);
     display.display();
 
     WiFi.mode(WIFI_STA);
@@ -113,7 +139,7 @@ void setup()
             attempted = true;
         } else if (status == WL_CONNECT_FAILED) {
             display.clearDisplay();
-            displayTextCentered(CONNECT_FAILED);
+            displayTextCentered(CONNECT_FAILED, 0, 1);
             display.display();
             while (true) {
                 delay(60000);
@@ -126,7 +152,7 @@ void setup()
     timeClient.begin();
 
     display.clearDisplay();
-    displayTextCentered(SYNCING_NTP);
+    displayTextCentered(SYNCING_NTP, 0, 1);
     display.display();
 
     timeClient.update();
