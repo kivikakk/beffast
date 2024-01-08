@@ -3,67 +3,65 @@
 #endif
 
 #include "Inkplate.h"
-Inkplate display(INKPLATE_1BIT);
+#include <WiFi.h>
 
-const char text[] = "Has Lily had beffast yet?";
+Inkplate display(INKPLATE_3BIT);
+WiFiServer server(80);
 
-// This variable is used for moving the text (scrolling)
-int offset = 800;
+#include "./wificreds.h"
 
-// Variable that keeps count on how much screen has been partially updated
-int n = 0;
+const char connecting[] = "Connecting to Wifi~";
+const char lily_hoongy_beffast[] = "Lily has not had BEFFAST yet :'(";
+const char lily_chomped_beffast[] = "Lily has chomped BEFFAST :)";
+const char lily_hoongy_dindin[] = "Lily has not had DINDIN yet :'(";
+const char lily_chomped_dindin[] = "Lily has chomped DINDIN :)";
+
+static void textCentered(char const *text) {
+    int16_t x, y;
+    uint16_t w, h;
+    display.getTextBounds(text, 0, 0, &x, &y, &w, &h);
+    display.setCursor((display.width() - w) / 2, (display.height() - h) / 2);
+    display.print(text);
+}
+
 void setup()
 {
-    display.begin();                    // Init Inkplate library (you should call this function ONLY ONCE)
-    display.clearDisplay();             // Clear frame buffer of display
-    display.display();                  // Put clear image on display
-    display.setTextColor(BLACK, WHITE); // Set text color to be black and background color to be white
-    display.setTextSize(4);             // Set text to be 4 times bigger than classic 5x7 px text
-    display.setTextWrap(false);         // Disable text wraping
+    display.begin();
+    display.setTextColor(0, 7);
+    display.setTextSize(4);
+    display.setTextWrap(true);
+
+    display.clearDisplay();
+    textCentered(connecting);
+    display.display();
+
+    WiFi.begin(wifi_ssid, wifi_pass);
+
+    while (true) {
+        int status = WiFi.status();
+        if (status == WL_CONNECTED) {
+            break;
+        } else if (status == WL_CONNECT_FAILED) {
+            display.clearDisplay();
+            display.display();
+            while (true) {
+                delay(60000);
+            }
+        }
+        delay(500);
+    };
+
+    display.clearDisplay();
+    textCentered(lily_hoongy_beffast);
+    display.display();
+
+    server.begin();
 }
 
 void loop()
 {
-    // BASIC USAGE
+    WiFiClient client = server.available();
+    if (client) {
 
-    display.clearDisplay();         // Clear content in frame buffer
-    display.setCursor(offset, 300); // Set new position for text
-    display.print(text);            // Write text at new position
-    if (n > 9)
-    {                      // Check if you need to do full refresh or you can do partial update
-        display.display(); // Do a full refresh
-        n = 0;
     }
-    else
-    {
-        display.partialUpdate(false, true); // Do partial update
-        n++;                                // Keep track on how many times screen has been partially updated
-    }
-    offset -= 20; // Move text into new position
-    if (offset < 0)
-        offset = 800; // Text is scrolled till the end of the screen? Get it back on the start!
-    delay(500);       // Delay between refreshes.
-
-    // ADVANCED USAGE
-
-    display.clearDisplay();         // Clear content in frame buffer
-    display.setCursor(offset, 300); // Set new position for text
-    display.print(text);            // Write text at new position
-
-    display.einkOn(); // Turn on e-ink display
-    if (n > 9)        // Check if you need to do full refresh or you can do partial update
-    {
-        display.einkOff(); // Turn off e-ink display after partial updates
-        display.display(); // Do a full refresh
-        n = 0;
-    }
-    else
-    {
-        display.partialUpdate(false, true); // Do partial update
-        n++;                                // Keep track on how many times screen has been partially updated
-    }
-    offset -= 20; // Move text into new position
-    if (offset < 0)
-        offset = 800; // Text is scrolled till the end of the screen? Get it back on the start!
-    delay(500);       // Delay between refreshes.
 }
