@@ -45,8 +45,8 @@ static tm timeinfo;
 
 static void displayTextCentered(char const* text, int line, int lines)
 {
-    static int16_t x, y;
-    static uint16_t w, h;
+    int16_t x, y;
+    uint16_t w, h;
     display.getTextBounds(text, 0, 0, &x, &y, &w, &h);
     display.setCursor(
         (display.width() - w) / 2,
@@ -56,8 +56,8 @@ static void displayTextCentered(char const* text, int line, int lines)
 
 static void displayTextRightLn(char const* text)
 {
-    static int16_t x, y;
-    static uint16_t w, h;
+    int16_t x, y;
+    uint16_t w, h;
     display.getTextBounds(text, 0, 0, &x, &y, &w, &h);
     display.setCursor(display.width() - w, display.getCursorY());
     display.println(text);
@@ -71,9 +71,8 @@ static void displayClock()
     if (timeinfo.tm_wday == 3) {
         displayTextRightLn(DAYS_OF_WEEK[timeinfo.tm_wday]);
     }
-    static char timebuf[10];
-    static size_t len;
-    len = strftime(timebuf, sizeof(timebuf), "%I:%M %p", &timeinfo);
+    char timebuf[10];
+    size_t len = strftime(timebuf, sizeof(timebuf), "%I:%M %p", &timeinfo);
     if (timebuf[0] == '0') {
         timebuf[0] = ' ';
     }
@@ -183,21 +182,16 @@ static struct {
 
 static bool parseClientRequest(WiFiClient& client)
 {
-    static enum {
+    enum {
         VERB,     // "POST"
         URI,      // "/feed"
         HTTP,     // "HTTP/1.1"
         HEADERS,  // etc.
-    } parse_state;
-    static char buf[255];
-    static uint8_t len;
+    } parse_state = VERB;
+    char buf[255];
+    uint8_t len = 0;
 
-    static unsigned long start;
-
-    parse_state = VERB;
-    len = 0;
-
-    start = millis();
+    unsigned long start = millis();
 
     while (client.connected()) {
         if (!client.available()) {
@@ -309,11 +303,9 @@ void loop()
         refresh();
     }
 
-    static WiFiClient client;
-    client = server.available();
+    WiFiClient client = server.available();
     if (client) {
-        static bool success;
-        success = false;
+        bool success = false;
         if (parseClientRequest(client)) {
             switch (request.kind) {
             case RequestKind::FEED:
