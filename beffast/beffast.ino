@@ -110,17 +110,8 @@ static void refresh()
     display.display();
 }
 
-void setup()
+static void connectWifi()
 {
-    // Australia/Melbourne
-    setenv("TZ", "AEST-10AEDT,M10.1.0,M4.1.0/3", 1);
-    tzset();
-
-    display.begin();
-    display.setTextColor(1, 0);
-    display.setTextWrap(false);
-    display.setTextSize(7);
-
     display.clearDisplay();
     displayTextCentered(CONNECTING, 0, 1);
     display.display();
@@ -145,10 +136,26 @@ void setup()
             }
         }
         delay(500);
-    };
+    }
 
     server.begin();
+
+    timeClient.end();
     timeClient.begin();
+}
+
+void setup()
+{
+    // Australia/Melbourne
+    setenv("TZ", "AEST-10AEDT,M10.1.0,M4.1.0/3", 1);
+    tzset();
+
+    display.begin();
+    display.setTextColor(1, 0);
+    display.setTextWrap(false);
+    display.setTextSize(7);
+
+    connectWifi();
 
     display.clearDisplay();
     displayTextCentered(SYNCING_NTP, 0, 1);
@@ -291,6 +298,11 @@ static void updateTimeinfo()
 
 void loop()
 {
+    if (WiFi.status() != WL_CONNECTED) {
+        connectWifi();
+        refresh();
+    }
+
     timeClient.update();
 
     updateTimeinfo();
