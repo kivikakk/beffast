@@ -131,9 +131,8 @@ static void connectWifi()
             display.clearDisplay();
             displayTextCentered(CONNECT_FAILED, 0, 1);
             display.display();
-            while (true) {
-                delay(60000);
-            }
+            delay(1000);
+            WiFi.begin(WIFI_SSID, WIFI_PASS);
         }
         delay(500);
     }
