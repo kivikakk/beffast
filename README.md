@@ -1,4 +1,4 @@
-# beffast
+# [beffast](https://hrzn.ee/kivikakk/beffast)
 
 Inkplate application which shows whether the dog's been fed or not yet.  Exposes
 a HTTP server to (un)feed the dog.
